@@ -1,0 +1,286 @@
+/* ============================================================
+   Landing — Hero Dark
+   ============================================================ */
+
+.hero-dark {
+    background: #1c1c1c;
+    padding: 5rem 2rem 0;
+    overflow: hidden;
+}
+
+.hero-dark-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    padding-bottom: 4.5rem;
+}
+
+/* ---- Left column ---- */
+
+.hero-dark-title {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    margin-bottom: 1.25rem;
+}
+
+.hero-dark-title em {
+    font-style: normal;
+    color: #e07058;
+}
+
+.hero-dark-subtitle {
+    font-size: 0.9rem;
+    color: #6e6e6e;
+    line-height: 1.8;
+    max-width: 380px;
+    margin-bottom: 2rem;
+}
+
+.hero-dark-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.btn-coral {
+    display: inline-block;
+    background: #e07058;
+    color: #ffffff;
+    padding: 0.7rem 1.75rem;
+    border-radius: 6px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn-coral:hover { background: #c85f49; }
+
+.btn-white-ghost {
+    display: inline-block;
+    color: #888888;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.btn-white-ghost:hover { color: #ffffff; }
+
+/* ---- Right column — floating cards ---- */
+
+.hero-dark-right {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.hero-cards {
+    position: relative;
+    width: 480px;
+    height: 365px;
+    flex-shrink: 0;
+}
+
+.hcard {
+    position: absolute;
+    border-radius: 14px;
+    padding: 1.2rem 1.3rem;
+}
+
+.hcard-expenses {
+    top: 0;
+    left: 0;
+    width: 192px;
+    background: #4a8f70;
+    z-index: 2;
+}
+
+.hcard-analytics {
+    top: 0;
+    right: 0;
+    width: 266px;
+    height: 192px;
+    background: #242424;
+    border: 1px solid #303030;
+    z-index: 1;
+}
+
+.hcard-revenue {
+    top: 140px;
+    left: 20px;
+    width: 182px;
+    background: #e07058;
+    z-index: 3;
+}
+
+.hcard-txns {
+    bottom: 0;
+    right: 0;
+    width: 266px;
+    background: #242424;
+    border: 1px solid #303030;
+    z-index: 3;
+}
+
+/* ---- Card content ---- */
+
+.hcard-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.55rem;
+}
+
+.hcard-expenses .hcard-label,
+.hcard-revenue .hcard-label { color: rgba(255,255,255,0.7); }
+
+.hcard-analytics .hcard-label,
+.hcard-txns .hcard-label { color: #5a5a5a; }
+
+.hcard-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.hcard-amount {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.55rem;
+    color: #ffffff;
+    line-height: 1;
+}
+
+.hcard-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.18);
+    color: rgba(255,255,255,0.85);
+}
+
+.hcard-sub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+}
+
+/* Analytics chart */
+
+.hcard-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    height: 95px;
+    margin-top: 0.75rem;
+}
+
+.hbar-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    flex: 1;
+    height: 100%;
+}
+
+.hbar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+}
+
+.hbar-green { background: #4a8f70; }
+.hbar-coral { background: #e07058; }
+
+/* Transactions */
+
+.htxn {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.8rem;
+}
+
+.htxn-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    flex-shrink: 0;
+}
+
+.htxn-in  { background: rgba(74,143,112,0.2); color: #4a8f70; }
+.htxn-out { background: rgba(224,112,88,0.2); color: #e07058; }
+
+.htxn-detail { flex: 1; min-width: 0; }
+
+.htxn-name {
+    display: block;
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: #d8d8d8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.htxn-status {
+    display: block;
+    font-size: 0.63rem;
+    color: #484848;
+}
+
+.htxn-amount {
+    font-size: 0.73rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.htxn-pos { color: #4a8f70; }
+.htxn-neg { color: #e07058; }
+
+/* ---- Logo strip ---- */
+
+.hero-dark-logos {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.75rem 0;
+    border-top: 1px solid #282828;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.hero-dark-logo {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #383838;
+    white-space: nowrap;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 960px) {
+    .hero-dark-inner { grid-template-columns: 1fr; }
+    .hero-dark-right { display: none; }
+    .hero-dark { padding-bottom: 4rem; }
+}
+
+@media (max-width: 600px) {
+    .hero-dark-logos { justify-content: center; }
+}

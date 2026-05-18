@@ -86,3 +86,18 @@ Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input
 
 Fixed list used in add/edit forms and styled as coloured badges on the dashboard:
 `Food & Dining`, `Transport`, `Shopping`, `Entertainment`, `Health`, `Bills & Utilities`, `Other`
+
+## Manual Test Coverage
+
+### `/profile` (tested 2026-05-19)
+| Scenario | Result |
+|---|---|
+| GET — page renders with title, both cards, member since, expense count | PASS |
+| GET — name and email pre-filled from DB | PASS |
+| GET — Dashboard link present in navbar | PASS |
+| POST `update_info` — valid name/email update shows success message | PASS |
+| POST `update_info` — updated name reflected in pre-filled form | PASS |
+| POST `change_password` — wrong current password shows error | PASS |
+| POST `change_password` — mismatched confirm password shows error | PASS |
+| POST `change_password` — password under 8 chars shows error | PASS |
+| POST `change_password` — valid change shows success message | PASS |

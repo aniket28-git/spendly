@@ -150,9 +150,49 @@ def add_expense():
     return render_template("add_expense.html", today=date.today().isoformat())
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    expense = db.execute(
+        "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
+        (id, session["user_id"])
+    ).fetchone()
+
+    if expense is None:
+        db.close()
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        title    = request.form.get("title", "").strip()
+        amount   = request.form.get("amount", "").strip()
+        category = request.form.get("category", "Other")
+        exp_date = request.form.get("date", "").strip()
+
+        if not title or not amount or not exp_date:
+            db.close()
+            return render_template("edit_expense.html", expense=expense, error="All fields are required.")
+
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            db.close()
+            return render_template("edit_expense.html", expense=expense, error="Enter a valid positive amount.")
+
+        db.execute(
+            "UPDATE expenses SET title=?, amount=?, category=?, date=? WHERE id=? AND user_id=?",
+            (title, amount, category, exp_date, id, session["user_id"])
+        )
+        db.commit()
+        db.close()
+        return redirect(url_for("dashboard"))
+
+    db.close()
+    return render_template("edit_expense.html", expense=expense)
 
 
 @app.route("/expenses/<int:id>/delete")

@@ -58,7 +58,7 @@ expenses (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards + expense table; login-gated. Accepts optional `start_date` and `end_date` query params (YYYY-MM-DD) to filter expenses by date range; shows Range total / Period stat cards when filtered |
+| GET | `/dashboard` | Shows stat cards + expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Stat cards adapt to show Filtered total / Period / Category context when any filter is active |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
@@ -97,6 +97,15 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Valid range with no matching expenses — "No expenses in this range" empty state | PASS |
 | Start date after end date — error message | PASS |
 | Only one date provided — error message | PASS |
+
+### `/dashboard` category filter (tested 2026-05-19)
+| Scenario | Result |
+|---|---|
+| Category only — correct subset shown, Category stat card | PASS |
+| Date + category combined — correct subset, Period & category stat card | PASS |
+| Category with no matching expenses — "No expenses in this range" empty state | PASS |
+| No filter — all expenses, default stat cards unchanged | PASS |
+| Category select pre-populated with active filter value | PASS |
 
 ### `/profile` (tested 2026-05-19)
 | Scenario | Result |

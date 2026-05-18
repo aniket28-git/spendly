@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **`app.py`** — All Flask routes. Calls `init_db()` at startup inside `with app.app_context()`. Uses `session` for auth (`user_id`, `user_name`).
 - **`database/db.py`** — SQLite module. `get_db()` returns a connection with `row_factory = sqlite3.Row` and foreign keys enabled. `init_db()` creates the `users` and `expenses` tables with `CREATE TABLE IF NOT EXISTS`.
-- **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows the user's name + Sign out (when `session.user_id` is set) or Sign in / Get started.
+- **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows Dashboard + the user's name (links to `/profile`) + Sign out (when `session.user_id` is set) or Sign in / Get started.
 - **`static/css/style.css`** — Global styles: design tokens, navbar, footer, auth forms, dashboard, expense pages.
 - **`static/css/landing.css`** — Landing-page-only styles (hero dark section, floating cards, video modal).
 - **`static/js/main.js`** — Vanilla JS entry point (stub).

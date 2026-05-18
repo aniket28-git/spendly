@@ -112,9 +112,73 @@ def logout():
     return redirect(url_for("landing"))
 
 
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 def profile():
-    return "Profile page — coming in Step 4"
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    user = db.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+    expense_count = db.execute(
+        "SELECT COUNT(*) FROM expenses WHERE user_id = ?", (session["user_id"],)
+    ).fetchone()[0]
+
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        if action == "update_info":
+            name  = request.form.get("name", "").strip()
+            email = request.form.get("email", "").strip().lower()
+
+            if not name or not email:
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       info_error="Name and email are required.")
+
+            try:
+                db.execute("UPDATE users SET name=?, email=? WHERE id=?",
+                           (name, email, session["user_id"]))
+                db.commit()
+                session["user_name"] = name
+            except Exception:
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       info_error="That email is already in use.")
+
+            user = db.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+            db.close()
+            return render_template("profile.html", user=user, expense_count=expense_count,
+                                   info_success=True)
+
+        elif action == "change_password":
+            current = request.form.get("current_password", "")
+            new_pw  = request.form.get("new_password", "")
+            confirm = request.form.get("confirm_password", "")
+
+            if not check_password_hash(user["password_hash"], current):
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       pw_error="Current password is incorrect.")
+
+            if len(new_pw) < 8:
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       pw_error="New password must be at least 8 characters.")
+
+            if new_pw != confirm:
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       pw_error="Passwords don't match.")
+
+            db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                       (generate_password_hash(new_pw), session["user_id"]))
+            db.commit()
+            db.close()
+            return render_template("profile.html", user=user, expense_count=expense_count,
+                                   pw_success=True)
+
+    db.close()
+    return render_template("profile.html", user=user, expense_count=expense_count)
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

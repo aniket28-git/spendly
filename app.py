@@ -1,3 +1,4 @@
+from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db
@@ -42,7 +43,7 @@ def register():
         finally:
             db.close()
 
-        return redirect(url_for("login"))
+        return render_template("register.html", success=True)
 
     return render_template("register.html")
 
@@ -62,7 +63,7 @@ def login():
 
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
-        return redirect(url_for("landing"))
+        return redirect(url_for("dashboard"))
 
     return render_template("login.html")
 
@@ -70,6 +71,30 @@ def login():
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
+
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    expenses = db.execute(
+        "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC",
+        (session["user_id"],)
+    ).fetchall()
+    db.close()
+
+    this_month = date.today().strftime("%Y-%m")
+    monthly_total = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
+    all_time_total = sum(e["amount"] for e in expenses)
+
+    return render_template(
+        "dashboard.html",
+        expenses=expenses,
+        monthly_total=monthly_total,
+        all_time_total=all_time_total,
+    )
+
 
 @app.route("/terms")
 def terms():

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Spendly{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-inner">
+
+        <div class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">Hello, {{ session.user_name.split()[0] }}</h1>
+                <p class="dashboard-subtitle">Here's your spending overview</p>
+            </div>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">+ Add expense</a>
+        </div>
+
+        <div class="stat-cards">
+            <div class="stat-card">
+                <span class="stat-label">This month</span>
+                <span class="stat-value">₹{{ "%.2f"|format(monthly_total) }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card-accent">
+                    <span class="stat-label">All time</span>
+                    <span class="stat-value">₹{{ "%.2f"|format(all_time_total) }}</span>
+                </span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Transactions</span>
+                <span class="stat-value">{{ expenses|length }}</span>
+            </div>
+        </div>
+
+        <div class="expenses-card">
+            <div class="expenses-card-header">
+                <h2 class="expenses-card-title">All expenses</h2>
+            </div>
+
+            {% if expenses %}
+            <table class="expenses-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th class="col-amount">Amount</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in expenses %}
+                    <tr>
+                        <td class="col-date">{{ e.date }}</td>
+                        <td class="col-title">{{ e.title }}</td>
+                        <td>
+                            <span class="category-badge cat-{{ e.category | lower | replace(' ', '-') | replace('&', '') | replace('--', '-') }}">
+                                {{ e.category }}
+                            </span>
+                        </td>
+                        <td class="col-amount">₹{{ "%.2f"|format(e.amount) }}</td>
+                        <td class="col-actions">
+                            <a href="{{ url_for('edit_expense', id=e.id) }}" class="row-action">Edit</a>
+                            <a href="{{ url_for('delete_expense', id=e.id) }}" class="row-action row-action-danger">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p class="empty-title">No expenses yet</p>
+                <p class="empty-sub">Add your first expense to start tracking your spending.</p>
+                <a href="{{ url_for('add_expense') }}" class="btn-primary">+ Add expense</a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

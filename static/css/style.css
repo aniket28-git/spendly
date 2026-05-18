@@ -440,6 +440,12 @@ a { color: inherit; text-decoration: none; }
 
 .form-group { margin-bottom: 1.25rem; }
 
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
 .form-group label {
     display: block;
     font-size: 0.85rem;

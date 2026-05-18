@@ -117,9 +117,37 @@ def profile():
     return "Profile page — coming in Step 4"
 
 
-@app.route("/expenses/add")
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        title    = request.form.get("title", "").strip()
+        amount   = request.form.get("amount", "").strip()
+        category = request.form.get("category", "Other")
+        exp_date = request.form.get("date", "").strip()
+
+        if not title or not amount or not exp_date:
+            return render_template("add_expense.html", error="All fields are required.")
+
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            return render_template("add_expense.html", error="Enter a valid positive amount.")
+
+        db = get_db()
+        db.execute(
+            "INSERT INTO expenses (user_id, title, amount, category, date) VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], title, amount, category, exp_date)
+        )
+        db.commit()
+        db.close()
+        return redirect(url_for("dashboard"))
+
+    return render_template("add_expense.html", today=date.today().isoformat())
 
 
 @app.route("/expenses/<int:id>/edit")

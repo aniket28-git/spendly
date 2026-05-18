@@ -62,6 +62,7 @@ expenses (
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
+| GET/POST | `/profile` | Edit name/email and change password; login-gated |
 | GET | `/terms` | Terms and Conditions |
 | GET | `/privacy` | Privacy Policy |
 

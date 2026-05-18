@@ -77,22 +77,59 @@ def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    db = get_db()
-    expenses = db.execute(
-        "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC",
-        (session["user_id"],)
-    ).fetchall()
-    db.close()
+    start_date  = request.args.get("start_date", "").strip()
+    end_date    = request.args.get("end_date", "").strip()
+    filtered    = False
+    filter_error = None
 
-    this_month = date.today().strftime("%Y-%m")
-    monthly_total = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
-    all_time_total = sum(e["amount"] for e in expenses)
+    if start_date or end_date:
+        try:
+            if start_date:
+                date.fromisoformat(start_date)
+            if end_date:
+                date.fromisoformat(end_date)
+            if not start_date or not end_date:
+                filter_error = "Please provide both a start and end date."
+            elif start_date > end_date:
+                filter_error = "Start date must be on or before the end date."
+            else:
+                filtered = True
+        except ValueError:
+            filter_error = "Invalid date format."
+
+    db = get_db()
+
+    if filtered:
+        expenses = db.execute(
+            "SELECT * FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ?"
+            " ORDER BY date DESC, id DESC",
+            (session["user_id"], start_date, end_date)
+        ).fetchall()
+        range_total   = sum(e["amount"] for e in expenses)
+        monthly_total = None
+        all_time_total = None
+    else:
+        expenses = db.execute(
+            "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC",
+            (session["user_id"],)
+        ).fetchall()
+        this_month    = date.today().strftime("%Y-%m")
+        monthly_total = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
+        all_time_total = sum(e["amount"] for e in expenses)
+        range_total   = None
+
+    db.close()
 
     return render_template(
         "dashboard.html",
         expenses=expenses,
         monthly_total=monthly_total,
         all_time_total=all_time_total,
+        range_total=range_total,
+        filtered=filtered,
+        start_date=start_date,
+        end_date=end_date,
+        filter_error=filter_error,
     )
 
 

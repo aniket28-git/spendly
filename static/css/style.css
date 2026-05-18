@@ -488,6 +488,36 @@ a { color: inherit; text-decoration: none; }
 
 .btn-submit:hover { background: var(--accent); }
 
+.btn-danger-submit { background: var(--danger); }
+.btn-danger-submit:hover { background: #a93226; }
+
+.delete-summary {
+    background: var(--danger-light);
+    border: 1px solid #f5c6c2;
+    border-radius: var(--radius-sm);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.delete-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--danger);
+    margin-bottom: 0.5rem;
+}
+
+.delete-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+}
+
+.delete-meta { font-size: 0.875rem; color: var(--ink-muted); }
+
 .auth-switch {
     text-align: center;
     font-size: 0.875rem;

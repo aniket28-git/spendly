@@ -77,10 +77,12 @@ def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    start_date  = request.args.get("start_date", "").strip()
-    end_date    = request.args.get("end_date", "").strip()
-    filtered    = False
-    filter_error = None
+    start_date = request.args.get("start_date", "").strip()
+    end_date   = request.args.get("end_date", "").strip()
+    category   = request.args.get("category", "").strip()
+
+    date_filtered = False
+    filter_error  = None
 
     if start_date or end_date:
         try:
@@ -93,30 +95,39 @@ def dashboard():
             elif start_date > end_date:
                 filter_error = "Start date must be on or before the end date."
             else:
-                filtered = True
+                date_filtered = True
         except ValueError:
             filter_error = "Invalid date format."
 
+    cat_filtered = bool(category)
+    filtered     = date_filtered or cat_filtered
+
     db = get_db()
 
+    conditions = ["user_id = ?"]
+    params     = [session["user_id"]]
+    if date_filtered:
+        conditions.append("date BETWEEN ? AND ?")
+        params.extend([start_date, end_date])
+    if cat_filtered:
+        conditions.append("category = ?")
+        params.append(category)
+
+    expenses = db.execute(
+        f"SELECT * FROM expenses WHERE {' AND '.join(conditions)}"
+        " ORDER BY date DESC, id DESC",
+        params
+    ).fetchall()
+
     if filtered:
-        expenses = db.execute(
-            "SELECT * FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ?"
-            " ORDER BY date DESC, id DESC",
-            (session["user_id"], start_date, end_date)
-        ).fetchall()
-        range_total   = sum(e["amount"] for e in expenses)
-        monthly_total = None
+        range_total    = sum(e["amount"] for e in expenses)
+        monthly_total  = None
         all_time_total = None
     else:
-        expenses = db.execute(
-            "SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC",
-            (session["user_id"],)
-        ).fetchall()
-        this_month    = date.today().strftime("%Y-%m")
-        monthly_total = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
+        this_month     = date.today().strftime("%Y-%m")
+        monthly_total  = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
         all_time_total = sum(e["amount"] for e in expenses)
-        range_total   = None
+        range_total    = None
 
     db.close()
 
@@ -127,8 +138,11 @@ def dashboard():
         all_time_total=all_time_total,
         range_total=range_total,
         filtered=filtered,
+        date_filtered=date_filtered,
+        cat_filtered=cat_filtered,
         start_date=start_date,
         end_date=end_date,
+        category=category,
         filter_error=filter_error,
     )
 

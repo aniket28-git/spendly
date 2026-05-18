@@ -58,7 +58,7 @@ expenses (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards + expense table; login-gated |
+| GET | `/dashboard` | Shows stat cards + expense table; login-gated. Accepts optional `start_date` and `end_date` query params (YYYY-MM-DD) to filter expenses by date range; shows Range total / Period stat cards when filtered |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
@@ -88,6 +88,15 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 `Food & Dining`, `Transport`, `Shopping`, `Entertainment`, `Health`, `Bills & Utilities`, `Other`
 
 ## Manual Test Coverage
+
+### `/dashboard` date range filter (tested 2026-05-19)
+| Scenario | Result |
+|---|---|
+| No filter — all expenses shown, This month / All time stat cards | PASS |
+| Valid range — correct subset of expenses, Range total + Period cards, Filtered badge | PASS |
+| Valid range with no matching expenses — "No expenses in this range" empty state | PASS |
+| Start date after end date — error message | PASS |
+| Only one date provided — error message | PASS |
 
 ### `/profile` (tested 2026-05-19)
 | Scenario | Result |

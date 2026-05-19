@@ -41,7 +41,7 @@ $env:MAIL_PASSWORD = "your-app-password"   # Gmail: generate an App Password in 
 - **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows Dashboard (links to `/dashboard`) + the user's name (links to `/profile`) + Sign out (when `session.user_id` is set) or Sign in / Get started.
 - **`static/css/style.css`** — Global styles: design tokens, navbar, footer, auth forms, dashboard, expense pages.
 - **`static/css/landing.css`** — Landing-page-only styles (hero dark section, floating cards, video modal).
-- **`static/js/main.js`** — Vanilla JS entry point (stub).
+- **`static/js/main.js`** — Vanilla JS. Handles toast auto-dismiss (4 s) and close-button logic.
 - **Chart.js 4.4** — loaded from CDN on the dashboard only (`{% block head %}`). Used for the monthly spending bar chart and the category doughnut chart; no local install required.
 
 ## Database Schema
@@ -107,7 +107,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Toast notifications use `.toast-container`, `.toast`, `.toast-success`, `.toast-error`, `.toast-msg`, `.toast-close`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -174,12 +174,12 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | GET — page renders with title, both cards, member since, expense count | PASS |
 | GET — name and email pre-filled from DB | PASS |
 | GET — Dashboard link present in navbar | PASS |
-| POST `update_info` — valid name/email update shows success message | PASS |
-| POST `update_info` — updated name reflected in pre-filled form | PASS |
+| POST `update_info` — valid name/email update shows "Profile updated." toast | PASS |
+| POST `update_info` — updated name reflected in pre-filled form after redirect | PASS |
 | POST `change_password` — wrong current password shows error | PASS |
 | POST `change_password` — mismatched confirm password shows error | PASS |
 | POST `change_password` — password under 8 chars shows error | PASS |
-| POST `change_password` — valid change shows success message | PASS |
+| POST `change_password` — valid change shows "Password changed." toast | PASS |
 
 ### `/forgot-password` + `/reset-password/<token>` (tested 2026-05-20)
 | Scenario | Result |
@@ -235,6 +235,18 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Filename includes today's date (`spendly-YYYY-MM-DD.csv`) | PASS |
 | Invalid date params silently ignored, full export returned | PASS |
 | Unauthenticated request redirects to `/login` | PASS |
+
+### Toast notifications (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| "Expense added." toast appears on dashboard after add | PASS |
+| "Expense updated." toast appears on dashboard after edit | PASS |
+| "Expense deleted." toast appears on dashboard after delete | PASS |
+| "Profile updated." toast appears on profile page after saving account info | PASS |
+| "Password changed." toast appears on profile page after password update | PASS |
+| Toast auto-dismisses after 4 s | PASS |
+| Close button (×) dismisses toast immediately | PASS |
+| Toast slides in from the right on appear, slides out on dismiss | PASS |
 
 ### `/dashboard` search bar (tested 2026-05-20)
 | Scenario | Result |

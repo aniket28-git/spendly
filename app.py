@@ -1,10 +1,25 @@
-from datetime import date
+import hashlib
+import os
+import secrets
+from datetime import date, datetime, timedelta
+
 from flask import Flask, render_template, request, redirect, url_for, session
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-change-in-production"
+
+app.config.update(
+    MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
+    MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
+    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER") or os.environ.get("MAIL_USERNAME"),
+)
+mail = Mail(app)
 
 with app.app_context():
     init_db()
@@ -66,6 +81,91 @@ def login():
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+
+        if user:
+            db.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user["id"],))
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            expires_at = datetime.utcnow() + timedelta(hours=1)
+            db.execute(
+                "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+                (user["id"], token_hash, expires_at.isoformat())
+            )
+            db.commit()
+            reset_url = url_for("reset_password", token=token, _external=True)
+            _send_reset_email(email, reset_url)
+
+        db.close()
+        return render_template("forgot_password.html", sent=True)
+
+    return render_template("forgot_password.html")
+
+
+def _send_reset_email(to_email, reset_url):
+    if not app.config.get("MAIL_USERNAME"):
+        print(f"\n[DEV] Password reset link for {to_email}:\n{reset_url}\n")
+        return
+    try:
+        msg = Message(
+            subject="Reset your Spendly password",
+            recipients=[to_email],
+            html=(
+                "<p>Hi,</p>"
+                "<p>Click the link below to reset your Spendly password. "
+                "This link expires in 1 hour.</p>"
+                f'<p><a href="{reset_url}">{reset_url}</a></p>'
+                "<p>If you didn't request this, you can safely ignore this email.</p>"
+                "<p>— Spendly</p>"
+            )
+        )
+        mail.send(msg)
+    except Exception as e:
+        print(f"[MAIL ERROR] {e}")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    db = get_db()
+    row = db.execute(
+        "SELECT * FROM password_reset_tokens WHERE token_hash = ? AND expires_at > datetime('now')",
+        (token_hash,)
+    ).fetchone()
+
+    if row is None:
+        db.close()
+        return render_template("reset_password.html", invalid=True)
+
+    if request.method == "POST":
+        new_pw  = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+
+        if len(new_pw) < 8:
+            db.close()
+            return render_template("reset_password.html", token=token,
+                                   error="Password must be at least 8 characters.")
+        if new_pw != confirm:
+            db.close()
+            return render_template("reset_password.html", token=token,
+                                   error="Passwords don't match.")
+
+        db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                   (generate_password_hash(new_pw), row["user_id"]))
+        db.execute("DELETE FROM password_reset_tokens WHERE token_hash=?", (token_hash,))
+        db.commit()
+        db.close()
+        return render_template("reset_password.html", success=True)
+
+    db.close()
+    return render_template("reset_password.html", token=token)
 
 
 # ------------------------------------------------------------------ #

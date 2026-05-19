@@ -17,6 +17,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > The system Python does not have Flask installed. Always run via `.\venv\Scripts\python.exe` or activate the venv first with `.\venv\Scripts\Activate.ps1`.
 
+## Email Configuration (forgot-password flow)
+
+Flask-Mail is used for password reset emails. Set these environment variables before starting the server:
+
+```bash
+$env:MAIL_USERNAME = "you@gmail.com"
+$env:MAIL_PASSWORD = "your-app-password"   # Gmail: generate an App Password in Google Account settings
+# Optional overrides (defaults shown):
+# $env:MAIL_SERVER = "smtp.gmail.com"
+# $env:MAIL_PORT   = "587"
+# $env:MAIL_DEFAULT_SENDER = "you@gmail.com"
+```
+
+**Dev mode:** if `MAIL_USERNAME` is not set, the reset link is printed to the server console instead of emailed — no SMTP setup needed for local development.
+
 ## Architecture
 
 **Spendly** is a server-side rendered Flask application with SQLite. There is no frontend build step — no Node, no bundler, no TypeScript.
@@ -49,6 +64,14 @@ expenses (
     date       DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
+
+password_reset_tokens (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL UNIQUE,   -- SHA-256 of the raw URL token
+    expires_at TIMESTAMP NOT NULL,     -- 1 hour from creation (UTC)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
 ```
 
 ## Implemented Routes
@@ -64,6 +87,8 @@ expenses (
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
 | GET/POST | `/profile` | Edit name/email and change password; login-gated |
+| GET/POST | `/forgot-password` | Request a password reset; shows same "check your email" message regardless of whether address exists |
+| GET/POST | `/reset-password/<token>` | Consume a reset token; sets new password and deletes the token. Shows expired/invalid state if token not found or past 1-hour TTL |
 | GET | `/terms` | Terms and Conditions |
 | GET | `/privacy` | Privacy Policy |
 
@@ -142,3 +167,17 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | POST `change_password` — mismatched confirm password shows error | PASS |
 | POST `change_password` — password under 8 chars shows error | PASS |
 | POST `change_password` — valid change shows success message | PASS |
+
+### `/forgot-password` + `/reset-password/<token>` (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| GET `/forgot-password` — form renders | PASS |
+| POST with registered email — "check your email" state shown | PASS |
+| POST with unregistered email — same "check your email" state (no enumeration) | PASS |
+| Dev mode (no MAIL_USERNAME) — reset link printed to console | PASS |
+| GET `/reset-password/<valid-token>` — new password form renders | PASS |
+| POST — password under 8 chars shows error | PASS |
+| POST — mismatched passwords shows error | PASS |
+| POST — valid reset updates password, token deleted, success shown | PASS |
+| GET `/reset-password/<expired-or-bad-token>` — invalid state + re-request link | PASS |
+| Token cannot be reused after successful reset | PASS |

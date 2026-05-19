@@ -793,6 +793,70 @@ a { color: inherit; text-decoration: none; }
     font-size: 0.9rem;
 }
 
+/* ------------------------------------------------------------------ */
+/* Pagination                                                           */
+/* ------------------------------------------------------------------ */
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.5rem;
+    border-top: 1px solid var(--border-soft);
+}
+
+.pagination-info {
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--paper-card);
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.page-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.page-btn-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper) !important;
+    cursor: default;
+}
+
+.page-btn-disabled {
+    color: var(--ink-faint) !important;
+    pointer-events: none;
+}
+
+.page-ellipsis {
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    padding: 0 0.2rem;
+}
+
+@media (max-width: 600px) {
+    .pagination-bar { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+}
+
 .expenses-card-title {
     font-size: 0.95rem;
     font-weight: 600;

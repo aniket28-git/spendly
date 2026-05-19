@@ -176,6 +176,9 @@ def reset_password(token):
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
 
+PER_PAGE = 10
+
+
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
@@ -192,6 +195,11 @@ def dashboard():
         sort = "date"
     if order not in ("asc", "desc"):
         order = "desc"
+
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except ValueError:
+        page = 1
 
     date_filtered = False
     filter_error  = None
@@ -225,21 +233,53 @@ def dashboard():
         conditions.append("category = ?")
         params.append(category)
 
-    expenses = db.execute(
-        f"SELECT * FROM expenses WHERE {' AND '.join(conditions)}"
-        f" ORDER BY {sort} {order.upper()}, id DESC",
+    where = " AND ".join(conditions)
+
+    # Aggregate totals for stat cards (all matching rows, not just current page)
+    agg = db.execute(
+        f"SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM expenses WHERE {where}",
         params
-    ).fetchall()
+    ).fetchone()
+    total_count = agg[0]
+    total_sum   = round(float(agg[1]), 2)
+
+    total_pages = max(1, (total_count + PER_PAGE - 1) // PER_PAGE)
+    page        = max(1, min(page, total_pages))
 
     if filtered:
-        range_total    = sum(e["amount"] for e in expenses)
+        range_total    = total_sum
         monthly_total  = None
         all_time_total = None
     else:
-        this_month     = date.today().strftime("%Y-%m")
-        monthly_total  = sum(e["amount"] for e in expenses if e["date"].startswith(this_month))
-        all_time_total = sum(e["amount"] for e in expenses)
+        this_month   = date.today().strftime("%Y-%m")
+        monthly_total = round(float(db.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = ? AND date LIKE ?",
+            (session["user_id"], f"{this_month}%")
+        ).fetchone()[0]), 2)
+        all_time_total = total_sum
         range_total    = None
+
+    # Paginated expense rows for the table
+    offset   = (page - 1) * PER_PAGE
+    expenses = db.execute(
+        f"SELECT * FROM expenses WHERE {where}"
+        f" ORDER BY {sort} {order.upper()}, id DESC"
+        f" LIMIT ? OFFSET ?",
+        params + [PER_PAGE, offset]
+    ).fetchall()
+
+    # Page range list: integers for page buttons, None for ellipsis
+    if total_pages <= 7:
+        page_range = list(range(1, total_pages + 1))
+    else:
+        pages = sorted({1, 2, max(1, page - 1), page,
+                        min(total_pages, page + 1), total_pages - 1, total_pages})
+        page_range, prev = [], None
+        for p in pages:
+            if prev is not None and p - prev > 1:
+                page_range.append(None)
+            page_range.append(p)
+            prev = p
 
     # Chart data: last 6 months, always unfiltered
     chart_expenses = db.execute(
@@ -274,6 +314,11 @@ def dashboard():
     return render_template(
         "dashboard.html",
         expenses=expenses,
+        total_count=total_count,
+        page=page,
+        total_pages=total_pages,
+        per_page=PER_PAGE,
+        page_range=page_range,
         monthly_total=monthly_total,
         all_time_total=all_time_total,
         range_total=range_total,

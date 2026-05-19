@@ -2,6 +2,23 @@
 
 {% block title %}Dashboard — Spendly{% endblock %}
 
+{% macro sort_th(col, label, extra_class='') %}
+{% if sort == col %}
+  {% set next_order = 'asc' if order == 'desc' else 'desc' %}
+  {% set arrow = ' ↓' if order == 'desc' else ' ↑' %}
+{% else %}
+  {% set next_order = 'desc' %}
+  {% set arrow = '' %}
+{% endif %}
+<th class="{{ extra_class }}{% if sort == col %} col-sorted{% endif %}">
+    <a href="{{ url_for('dashboard',
+        start_date=start_date if start_date else None,
+        end_date=end_date if end_date else None,
+        category=category if category else None,
+        sort=col, order=next_order) }}" class="sort-link">{{ label }}{{ arrow }}</a>
+</th>
+{% endmacro %}
+
 {% block content %}
 <section class="dashboard-section">
     <div class="dashboard-inner">
@@ -103,10 +120,10 @@
             <table class="expenses-table">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th class="col-amount">Amount</th>
+                        {{ sort_th('date', 'Date') }}
+                        {{ sort_th('title', 'Title') }}
+                        {{ sort_th('category', 'Category') }}
+                        {{ sort_th('amount', 'Amount', 'col-amount') }}
                         <th></th>
                     </tr>
                 </thead>

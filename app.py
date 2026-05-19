@@ -81,6 +81,14 @@ def dashboard():
     end_date   = request.args.get("end_date", "").strip()
     category   = request.args.get("category", "").strip()
 
+    VALID_SORT = {"date", "title", "category", "amount"}
+    sort  = request.args.get("sort", "date").strip()
+    order = request.args.get("order", "desc").strip()
+    if sort not in VALID_SORT:
+        sort = "date"
+    if order not in ("asc", "desc"):
+        order = "desc"
+
     date_filtered = False
     filter_error  = None
 
@@ -115,7 +123,7 @@ def dashboard():
 
     expenses = db.execute(
         f"SELECT * FROM expenses WHERE {' AND '.join(conditions)}"
-        " ORDER BY date DESC, id DESC",
+        f" ORDER BY {sort} {order.upper()}, id DESC",
         params
     ).fetchall()
 
@@ -144,6 +152,8 @@ def dashboard():
         end_date=end_date,
         category=category,
         filter_error=filter_error,
+        sort=sort,
+        order=order,
     )
 
 

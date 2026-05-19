@@ -129,6 +129,11 @@
                     All expenses
                     {% if filtered %}<span class="filter-badge">Filtered</span>{% endif %}
                 </h2>
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="search" id="expense-search" class="search-input"
+                           placeholder="Search expenses…" autocomplete="off">
+                </div>
             </div>
 
             {% if expenses %}
@@ -179,6 +184,39 @@
 </section>
 
 {% block scripts %}
+<script>
+(function () {
+    const input = document.getElementById('expense-search');
+    if (!input) return;
+    const tbody = document.querySelector('.expenses-table tbody');
+    if (!tbody) return;
+
+    input.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        const rows = tbody.querySelectorAll('tr:not(#search-empty)');
+        let visible = 0;
+
+        rows.forEach(function (row) {
+            const match = !q || row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+
+        let noResults = document.getElementById('search-empty');
+        if (visible === 0 && q) {
+            if (!noResults) {
+                noResults = document.createElement('tr');
+                noResults.id = 'search-empty';
+                noResults.innerHTML = '<td colspan="5" class="search-empty-cell">No expenses match your search.</td>';
+                tbody.appendChild(noResults);
+            }
+            noResults.style.display = '';
+        } else if (noResults) {
+            noResults.style.display = 'none';
+        }
+    });
+})();
+</script>
 <script>
 (function () {
     const labels = {{ chart_labels | tojson }};

@@ -137,6 +137,25 @@ def dashboard():
         all_time_total = sum(e["amount"] for e in expenses)
         range_total    = None
 
+    # Chart data: last 6 months, always unfiltered
+    chart_expenses = db.execute(
+        "SELECT date, amount FROM expenses WHERE user_id = ?",
+        (session["user_id"],)
+    ).fetchall()
+
+    today = date.today()
+    chart_labels, chart_values = [], []
+    for i in range(5, -1, -1):
+        m, y = today.month - i, today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        label = date(y, m, 1).strftime("%b %Y")
+        month_prefix = f"{y}-{m:02d}"
+        total = sum(e["amount"] for e in chart_expenses if e["date"].startswith(month_prefix))
+        chart_labels.append(label)
+        chart_values.append(round(total, 2))
+
     db.close()
 
     return render_template(
@@ -154,6 +173,8 @@ def dashboard():
         filter_error=filter_error,
         sort=sort,
         order=order,
+        chart_labels=chart_labels,
+        chart_values=chart_values,
     )
 
 

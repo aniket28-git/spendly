@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard — Spendly{% endblock %}
 
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% macro sort_th(col, label, extra_class='') %}
 {% if sort == col %}
   {% set next_order = 'asc' if order == 'desc' else 'desc' %}
@@ -29,6 +33,17 @@
                 <p class="dashboard-subtitle">Here's your spending overview</p>
             </div>
             <a href="{{ url_for('add_expense') }}" class="btn-primary">+ Add expense</a>
+        </div>
+
+        <!-- Spending chart -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <h2 class="chart-card-title">Monthly spending</h2>
+                <span class="chart-card-subtitle">Last 6 months</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="spendingChart"></canvas>
+            </div>
         </div>
 
         <!-- Date range filter -->
@@ -162,4 +177,54 @@
 
     </div>
 </section>
+
+{% block scripts %}
+<script>
+(function () {
+    const labels = {{ chart_labels | tojson }};
+    const values = {{ chart_values | tojson }};
+    const ctx = document.getElementById('spendingChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: 'rgba(26, 71, 42, 0.12)',
+                borderColor: 'rgba(26, 71, 42, 0.75)',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: c => ' ₹' + c.parsed.y.toFixed(2)
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 12 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        callback: v => '₹' + v,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}
 {% endblock %}

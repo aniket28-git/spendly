@@ -35,14 +35,30 @@
             <a href="{{ url_for('add_expense') }}" class="btn-primary">+ Add expense</a>
         </div>
 
-        <!-- Spending chart -->
-        <div class="chart-card">
-            <div class="chart-card-header">
-                <h2 class="chart-card-title">Monthly spending</h2>
-                <span class="chart-card-subtitle">Last 6 months</span>
+        <!-- Charts row -->
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h2 class="chart-card-title">Monthly spending</h2>
+                    <span class="chart-card-subtitle">Last 6 months</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="spendingChart"></canvas>
+                </div>
             </div>
-            <div class="chart-wrap">
-                <canvas id="spendingChart"></canvas>
+
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h2 class="chart-card-title">By category</h2>
+                    <span class="chart-card-subtitle">All time</span>
+                </div>
+                {% if donut_values %}
+                <div class="donut-wrap">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                {% else %}
+                <div class="donut-empty">No expenses yet</div>
+                {% endif %}
             </div>
         </div>
 
@@ -222,6 +238,56 @@
     const labels = {{ chart_labels | tojson }};
     const values = {{ chart_values | tojson }};
     const ctx = document.getElementById('spendingChart').getContext('2d');
+    const donutLabels = {{ donut_labels | tojson }};
+    const donutValues = {{ donut_values | tojson }};
+    const CAT_COLORS = {
+        'Food & Dining':   '#f59e0b',
+        'Transport':       '#3b82f6',
+        'Shopping':        '#ec4899',
+        'Entertainment':   '#8b5cf6',
+        'Health':          '#10b981',
+        'Bills & Utilities': '#ef4444',
+        'Other':           '#9ca3af',
+    };
+    const donutCtx = document.getElementById('categoryChart');
+    if (donutCtx && donutValues.length) {
+        new Chart(donutCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: donutLabels,
+                datasets: [{
+                    data: donutValues,
+                    backgroundColor: donutLabels.map(l => CAT_COLORS[l] || '#9ca3af'),
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11, family: "'DM Sans', sans-serif" },
+                            color: '#6b6b6b',
+                            padding: 12,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: c => ' ₹' + c.parsed.toFixed(2)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {

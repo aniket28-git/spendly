@@ -885,12 +885,18 @@ a { color: inherit; text-decoration: none; }
 /* Spending chart                                                      */
 /* ------------------------------------------------------------------ */
 
+.charts-row {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
 .chart-card {
     background: var(--paper-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: 1.25rem 1.5rem 1.5rem;
-    margin-bottom: 2rem;
 }
 
 .chart-card-header {
@@ -914,6 +920,24 @@ a { color: inherit; text-decoration: none; }
 .chart-wrap {
     position: relative;
     height: 220px;
+}
+
+.donut-wrap {
+    position: relative;
+    height: 220px;
+}
+
+.donut-empty {
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+    .charts-row { grid-template-columns: 1fr; }
 }
 
 /* ------------------------------------------------------------------ */

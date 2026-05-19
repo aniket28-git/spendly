@@ -241,7 +241,7 @@ def dashboard():
 
     # Chart data: last 6 months, always unfiltered
     chart_expenses = db.execute(
-        "SELECT date, amount FROM expenses WHERE user_id = ?",
+        "SELECT date, amount, category FROM expenses WHERE user_id = ?",
         (session["user_id"],)
     ).fetchall()
 
@@ -257,6 +257,15 @@ def dashboard():
         total = sum(e["amount"] for e in chart_expenses if e["date"].startswith(month_prefix))
         chart_labels.append(label)
         chart_values.append(round(total, 2))
+
+    # Category doughnut: all-time, unfiltered
+    cat_order = ["Food & Dining", "Transport", "Shopping", "Entertainment", "Health", "Bills & Utilities", "Other"]
+    cat_totals = {cat: 0.0 for cat in cat_order}
+    for e in chart_expenses:
+        cat = e["category"] if e["category"] in cat_totals else "Other"
+        cat_totals[cat] += e["amount"]
+    donut_labels = [c for c in cat_order if cat_totals[c] > 0]
+    donut_values = [round(cat_totals[c], 2) for c in donut_labels]
 
     db.close()
 
@@ -277,6 +286,8 @@ def dashboard():
         order=order,
         chart_labels=chart_labels,
         chart_values=chart_values,
+        donut_labels=donut_labels,
+        donut_values=donut_values,
     )
 
 

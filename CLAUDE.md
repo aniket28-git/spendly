@@ -86,7 +86,7 @@ password_reset_tokens (
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
-| GET/POST | `/profile` | Edit name/email and change password; login-gated |
+| GET/POST | `/profile` | Edit name/email, change password, and delete account; login-gated. Delete action (`action=delete_account`) requires password confirmation, wipes tokens → expenses → user row, clears session, and redirects to `/` |
 | GET/POST | `/forgot-password` | Request a password reset; shows same "check your email" message regardless of whether address exists |
 | GET/POST | `/reset-password/<token>` | Consume a reset token; sets new password and deletes the token. Shows expired/invalid state if token not found or past 1-hour TTL |
 | GET | `/terms` | Terms and Conditions |
@@ -106,7 +106,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -181,6 +181,15 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | POST — valid reset updates password, token deleted, success shown | PASS |
 | GET `/reset-password/<expired-or-bad-token>` — invalid state + re-request link | PASS |
 | Token cannot be reused after successful reset | PASS |
+
+### `/profile` account deletion (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| Danger zone card visible on profile page | PASS |
+| Wrong password — error shown, account not deleted | PASS |
+| Correct password — account, expenses, and reset tokens all deleted | PASS |
+| Session cleared after deletion — redirected to landing page | PASS |
+| Deleted user cannot log in again | PASS |
 
 ### `/login` remember me (tested 2026-05-20)
 | Scenario | Result |

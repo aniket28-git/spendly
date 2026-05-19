@@ -361,6 +361,23 @@ def profile():
             return render_template("profile.html", user=user, expense_count=expense_count,
                                    pw_success=True)
 
+        elif action == "delete_account":
+            password = request.form.get("confirm_delete_password", "")
+
+            if not check_password_hash(user["password_hash"], password):
+                db.close()
+                return render_template("profile.html", user=user, expense_count=expense_count,
+                                       delete_error="Incorrect password.")
+
+            user_id = session["user_id"]
+            db.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+            db.execute("DELETE FROM expenses WHERE user_id = ?", (user_id,))
+            db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            db.commit()
+            db.close()
+            session.clear()
+            return redirect(url_for("landing"))
+
     db.close()
     return render_template("profile.html", user=user, expense_count=expense_count)
 

@@ -74,6 +74,35 @@
 
         </div>
 
+        <!-- Danger zone -->
+        <div class="danger-zone">
+            <h2 class="danger-zone-title">Danger zone</h2>
+            <div class="auth-card danger-zone-card">
+                <p class="danger-zone-desc">
+                    Permanently deletes your account and every expense you've tracked.
+                    This cannot be undone.
+                </p>
+
+                {% if delete_error %}
+                <div class="auth-error">{{ delete_error }}</div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('profile') }}">
+                    <input type="hidden" name="action" value="delete_account">
+                    <div class="form-group">
+                        <label for="confirm_delete_password">Confirm your password</label>
+                        <input type="password" id="confirm_delete_password"
+                               name="confirm_delete_password"
+                               class="form-input" placeholder="Enter your password to confirm"
+                               required>
+                    </div>
+                    <button type="submit" class="btn-submit btn-danger-submit">
+                        Delete my account
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <div class="profile-meta">
             <span>Member since {{ user.created_at[:10] }}</span>
             <span>&middot;</span>

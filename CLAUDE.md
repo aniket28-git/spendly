@@ -82,7 +82,8 @@ password_reset_tokens (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success. "Remember me for 30 days" checkbox sets `session.permanent = True`, attaching a 30-day `Max-Age` cookie; unchecked gives a session cookie that expires on browser close |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Charts are always unfiltered. Expense table has a client-side search bar (filters by title, category, or date in real time; composes with server-side filters) |
+| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Charts are always unfiltered. Expense table has a client-side search bar and an Export CSV button (both in the card header); the export link forwards active filter params to `/expenses/export` |
+| GET | `/expenses/export` | Download all expenses as a CSV file (`spendly-YYYY-MM-DD.csv`). Accepts the same `start_date`, `end_date`, and `category` query params as the dashboard — export matches the active filter. Invalid dates are silently ignored. Login-gated |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
@@ -209,6 +210,17 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Checkbox unchecked — session cookie with no Max-Age (expires on browser close) | PASS |
 | Checkbox checked — cookie has 30-day Max-Age, persists across browser restart | PASS |
 | "Remember me for 30 days" checkbox rendered on login page | PASS |
+
+### `/expenses/export` CSV export (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| No filter — all expenses downloaded as CSV | PASS |
+| Active date range — only matching rows in CSV | PASS |
+| Active category filter — only matching rows in CSV | PASS |
+| CSV columns: Date, Title, Category, Amount | PASS |
+| Filename includes today's date (`spendly-YYYY-MM-DD.csv`) | PASS |
+| Invalid date params silently ignored, full export returned | PASS |
+| Unauthenticated request redirects to `/login` | PASS |
 
 ### `/dashboard` search bar (tested 2026-05-20)
 | Scenario | Result |

@@ -1,3 +1,4 @@
+import calendar
 import csv
 import hashlib
 import io
@@ -26,6 +27,49 @@ mail = Mail(app)
 
 with app.app_context():
     init_db()
+
+
+# ------------------------------------------------------------------ #
+# Recurring expense helpers                                           #
+# ------------------------------------------------------------------ #
+
+FREQUENCIES = ("weekly", "monthly", "yearly")
+
+
+def _advance_date(d, frequency):
+    if frequency == "weekly":
+        return d + timedelta(weeks=1)
+    if frequency == "monthly":
+        month = d.month + 1
+        year  = d.year
+        if month > 12:
+            month, year = 1, year + 1
+        return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
+    # yearly
+    year = d.year + 1
+    return date(year, d.month, min(d.day, calendar.monthrange(year, d.month)[1]))
+
+
+def generate_due_recurring(db, user_id):
+    today = date.today()
+    due = db.execute(
+        "SELECT * FROM recurring_expenses WHERE user_id = ? AND next_due <= ?",
+        (user_id, today.isoformat())
+    ).fetchall()
+    for r in due:
+        next_due = date.fromisoformat(r["next_due"])
+        while next_due <= today:
+            db.execute(
+                "INSERT INTO expenses (user_id, title, amount, category, date) VALUES (?, ?, ?, ?, ?)",
+                (user_id, r["title"], r["amount"], r["category"], next_due.isoformat())
+            )
+            next_due = _advance_date(next_due, r["frequency"])
+        db.execute(
+            "UPDATE recurring_expenses SET next_due = ? WHERE id = ?",
+            (next_due.isoformat(), r["id"])
+        )
+    if due:
+        db.commit()
 
 
 # ------------------------------------------------------------------ #
@@ -183,6 +227,10 @@ PER_PAGE = 10
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
+
+    db = get_db()
+    generate_due_recurring(db, session["user_id"])
+    db.close()
 
     start_date = request.args.get("start_date", "").strip()
     end_date   = request.args.get("end_date", "").strip()
@@ -476,6 +524,7 @@ def profile():
 
             user_id = session["user_id"]
             db.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+            db.execute("DELETE FROM recurring_expenses WHERE user_id = ?", (user_id,))
             db.execute("DELETE FROM expenses WHERE user_id = ?", (user_id,))
             db.execute("DELETE FROM users WHERE id = ?", (user_id,))
             db.commit()
@@ -591,6 +640,76 @@ def delete_expense(id):
 
     db.close()
     return render_template("delete_expense.html", expense=expense)
+
+
+@app.route("/recurring", methods=["GET", "POST"])
+def recurring():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db = get_db()
+
+    if request.method == "POST":
+        title     = request.form.get("title", "").strip()
+        amount    = request.form.get("amount", "").strip()
+        category  = request.form.get("category", "Other")
+        frequency = request.form.get("frequency", "monthly")
+        start     = request.form.get("start_date", "").strip()
+
+        error = None
+        if not title or not amount or not start:
+            error = "All fields are required."
+        elif frequency not in FREQUENCIES:
+            error = "Invalid frequency."
+        else:
+            try:
+                amount_f = float(amount)
+                if amount_f <= 0:
+                    raise ValueError
+            except ValueError:
+                error = "Enter a valid positive amount."
+
+        if error:
+            rows = db.execute(
+                "SELECT * FROM recurring_expenses WHERE user_id = ? ORDER BY next_due",
+                (session["user_id"],)
+            ).fetchall()
+            db.close()
+            return render_template("recurring.html", recurring=rows, error=error,
+                                   today=date.today().isoformat())
+
+        db.execute(
+            "INSERT INTO recurring_expenses (user_id, title, amount, category, frequency, next_due)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (session["user_id"], title, amount_f, category, frequency, start)
+        )
+        db.commit()
+        db.close()
+        flash(f"Recurring \"{title}\" added.", "success")
+        return redirect(url_for("recurring"))
+
+    rows = db.execute(
+        "SELECT * FROM recurring_expenses WHERE user_id = ? ORDER BY next_due",
+        (session["user_id"],)
+    ).fetchall()
+    db.close()
+    return render_template("recurring.html", recurring=rows, today=date.today().isoformat())
+
+
+@app.route("/recurring/<int:id>/delete", methods=["POST"])
+def delete_recurring(id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    db.execute(
+        "DELETE FROM recurring_expenses WHERE id = ? AND user_id = ?",
+        (id, session["user_id"])
+    )
+    db.commit()
+    db.close()
+    flash("Recurring expense stopped.", "success")
+    return redirect(url_for("recurring"))
 
 
 if __name__ == "__main__":

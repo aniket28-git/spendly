@@ -42,6 +42,18 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS recurring_expenses (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL REFERENCES users(id),
+            title      TEXT NOT NULL,
+            amount     REAL NOT NULL,
+            category   TEXT NOT NULL DEFAULT 'Other',
+            frequency  TEXT NOT NULL,
+            next_due   DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     conn.close()
 

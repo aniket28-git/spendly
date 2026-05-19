@@ -42,7 +42,7 @@ $env:MAIL_PASSWORD = "your-app-password"   # Gmail: generate an App Password in 
 - **`static/css/style.css`** — Global styles: design tokens, navbar, footer, auth forms, dashboard, expense pages.
 - **`static/css/landing.css`** — Landing-page-only styles (hero dark section, floating cards, video modal).
 - **`static/js/main.js`** — Vanilla JS entry point (stub).
-- **Chart.js 4.4** — loaded from CDN on the dashboard only (`{% block head %}`). Used for the monthly spending bar chart; no local install required.
+- **Chart.js 4.4** — loaded from CDN on the dashboard only (`{% block head %}`). Used for the monthly spending bar chart and the category doughnut chart; no local install required.
 
 ## Database Schema
 
@@ -82,7 +82,7 @@ password_reset_tokens (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success. "Remember me for 30 days" checkbox sets `session.permanent = True`, attaching a 30-day `Max-Age` cookie; unchecked gives a session cookie that expires on browser close |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards, monthly spending bar chart, filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Chart always shows last 6 months unfiltered. Expense table has a client-side search bar (filters by title, category, or date in real time; composes with server-side filters) |
+| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Charts are always unfiltered. Expense table has a client-side search bar (filters by title, category, or date in real time; composes with server-side filters) |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
@@ -106,7 +106,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -133,6 +133,18 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Correct monthly totals passed to chart | PASS |
 | Chart data unaffected by active category/date filter | PASS |
 | Chart card title and subtitle rendered | PASS |
+
+### `/dashboard` category doughnut chart (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| Doughnut canvas rendered alongside bar chart in 2-column grid | PASS |
+| Only categories with spending > 0 included in chart data | PASS |
+| Category colours match badge colours | PASS |
+| Tooltip shows ₹ amount on hover | PASS |
+| Legend rendered at bottom with category names | PASS |
+| Chart data always unfiltered (all-time totals) | PASS |
+| Empty state shown when user has no expenses | PASS |
+| Grid collapses to single column on mobile (≤900 px) | PASS |
 
 ### `/dashboard` sort feature (tested 2026-05-20)
 | Scenario | Result |

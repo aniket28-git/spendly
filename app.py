@@ -5,7 +5,7 @@ import os
 import secrets
 from datetime import date, datetime, timedelta
 
-from flask import Flask, render_template, request, redirect, url_for, session, Response
+from flask import Flask, render_template, request, redirect, url_for, session, Response, flash
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db
@@ -435,10 +435,9 @@ def profile():
                 return render_template("profile.html", user=user, expense_count=expense_count,
                                        info_error="That email is already in use.")
 
-            user = db.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
             db.close()
-            return render_template("profile.html", user=user, expense_count=expense_count,
-                                   info_success=True)
+            flash("Profile updated.", "success")
+            return redirect(url_for("profile"))
 
         elif action == "change_password":
             current = request.form.get("current_password", "")
@@ -464,8 +463,8 @@ def profile():
                        (generate_password_hash(new_pw), session["user_id"]))
             db.commit()
             db.close()
-            return render_template("profile.html", user=user, expense_count=expense_count,
-                                   pw_success=True)
+            flash("Password changed.", "success")
+            return redirect(url_for("profile"))
 
         elif action == "delete_account":
             password = request.form.get("confirm_delete_password", "")
@@ -516,6 +515,7 @@ def add_expense():
         )
         db.commit()
         db.close()
+        flash("Expense added.", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("add_expense.html", today=date.today().isoformat())
@@ -560,6 +560,7 @@ def edit_expense(id):
         )
         db.commit()
         db.close()
+        flash("Expense updated.", "success")
         return redirect(url_for("dashboard"))
 
     db.close()
@@ -585,6 +586,7 @@ def delete_expense(id):
         db.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (id, session["user_id"]))
         db.commit()
         db.close()
+        flash("Expense deleted.", "success")
         return redirect(url_for("dashboard"))
 
     db.close()

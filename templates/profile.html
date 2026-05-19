@@ -20,9 +20,6 @@
                 {% if info_error %}
                 <div class="auth-error">{{ info_error }}</div>
                 {% endif %}
-                {% if info_success %}
-                <div class="auth-success-msg" style="margin-bottom:1.25rem;">Profile updated successfully.</div>
-                {% endif %}
 
                 <form method="POST" action="/profile">
                     <input type="hidden" name="action" value="update_info">
@@ -46,9 +43,6 @@
 
                 {% if pw_error %}
                 <div class="auth-error">{{ pw_error }}</div>
-                {% endif %}
-                {% if pw_success %}
-                <div class="auth-success-msg" style="margin-bottom:1.25rem;">Password changed successfully.</div>
                 {% endif %}
 
                 <form method="POST" action="/profile">

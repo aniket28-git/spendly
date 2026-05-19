@@ -37,8 +37,8 @@ $env:MAIL_PASSWORD = "your-app-password"   # Gmail: generate an App Password in 
 **Spendly** is a server-side rendered Flask application with SQLite. There is no frontend build step — no Node, no bundler, no TypeScript.
 
 - **`app.py`** — All Flask routes. Calls `init_db()` at startup inside `with app.app_context()`. Uses `session` for auth (`user_id`, `user_name`).
-- **`database/db.py`** — SQLite module. `get_db()` returns a connection with `row_factory = sqlite3.Row` and foreign keys enabled. `init_db()` creates the `users` and `expenses` tables with `CREATE TABLE IF NOT EXISTS`.
-- **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows Dashboard (links to `/dashboard`) + the user's name (links to `/profile`) + Sign out (when `session.user_id` is set) or Sign in / Get started.
+- **`database/db.py`** — SQLite module. `get_db()` returns a connection with `row_factory = sqlite3.Row` and foreign keys enabled. `init_db()` creates all tables with `CREATE TABLE IF NOT EXISTS`.
+- **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows Dashboard · Recurring · user name (→ `/profile`) · Sign out (when `session.user_id` is set) or Sign in / Get started.
 - **`static/css/style.css`** — Global styles: design tokens, navbar, footer, auth forms, dashboard, expense pages.
 - **`static/css/landing.css`** — Landing-page-only styles (hero dark section, floating cards, video modal).
 - **`static/js/main.js`** — Vanilla JS. Handles toast auto-dismiss (4 s) and close-button logic.
@@ -72,6 +72,17 @@ password_reset_tokens (
     expires_at TIMESTAMP NOT NULL,     -- 1 hour from creation (UTC)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
+
+recurring_expenses (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    title      TEXT NOT NULL,
+    amount     REAL NOT NULL,
+    category   TEXT NOT NULL DEFAULT 'Other',
+    frequency  TEXT NOT NULL,          -- 'weekly' | 'monthly' | 'yearly'
+    next_due   DATE NOT NULL,          -- advanced after each generation run
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
 ```
 
 ## Implemented Routes
@@ -82,12 +93,14 @@ password_reset_tokens (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success. "Remember me for 30 days" checkbox sets `session.permanent = True`, attaching a 30-day `Max-Age` cookie; unchecked gives a session cookie that expires on browser close |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Accepts `page` for pagination (10 rows per page, `PER_PAGE = 10`). Stat card totals are computed via SQL aggregates over all matching rows regardless of page. Charts are always unfiltered. Expense table has a client-side search bar and an Export CSV button (both in the card header); the export link forwards active filter params to `/expenses/export` |
+| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Calls `generate_due_recurring()` on every load to auto-create any overdue recurring entries. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Accepts `page` for pagination (10 rows per page, `PER_PAGE = 10`). Stat card totals are computed via SQL aggregates over all matching rows regardless of page. Charts are always unfiltered. Expense table has a client-side search bar and an Export CSV button (both in the card header); the export link forwards active filter params to `/expenses/export` |
 | GET | `/expenses/export` | Download all expenses as a CSV file (`spendly-YYYY-MM-DD.csv`). Accepts the same `start_date`, `end_date`, and `category` query params as the dashboard — export matches the active filter. Invalid dates are silently ignored. Login-gated |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
-| GET/POST | `/profile` | Edit name/email, change password, and delete account; login-gated. Delete action (`action=delete_account`) requires password confirmation, wipes tokens → expenses → user row, clears session, and redirects to `/` |
+| GET/POST | `/profile` | Edit name/email, change password, and delete account; login-gated. Delete action (`action=delete_account`) requires password confirmation, wipes tokens → recurring → expenses → user row, clears session, and redirects to `/` |
+| GET/POST | `/recurring` | List and add recurring expense schedules; login-gated. POST creates a new schedule (title, amount, category, frequency, start date). Redirects with toast on success |
+| POST | `/recurring/<id>/delete` | Stop (delete) a recurring schedule (owner-checked). Redirects with toast |
 | GET/POST | `/forgot-password` | Request a password reset; shows same "check your email" message regardless of whether address exists |
 | GET/POST | `/reset-password/<token>` | Consume a reset token; sets new password and deletes the token. Shows expired/invalid state if token not found or past 1-hour TTL |
 | GET | `/terms` | Terms and Conditions |
@@ -107,7 +120,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Toast notifications use `.toast-container`, `.toast`, `.toast-success`, `.toast-error`, `.toast-msg`, `.toast-close`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Toast notifications use `.toast-container`, `.toast`, `.toast-success`, `.toast-error`, `.toast-msg`, `.toast-close`. The recurring page uses `.recurring-section`, `.recurring-inner`, `.recurring-header`, `.recurring-title`, `.recurring-subtitle`, `.recur-freq` (frequency badge), `.btn-unstyled` (unstyled form button). Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -247,6 +260,20 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Toast auto-dismisses after 4 s | PASS |
 | Close button (×) dismisses toast immediately | PASS |
 | Toast slides in from the right on appear, slides out on dismiss | PASS |
+
+### `/recurring` recurring expenses (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| Recurring nav link present for logged-in users | PASS |
+| GET — empty state shown when no schedules exist | PASS |
+| POST — valid schedule added, "Recurring X added." toast shown | PASS |
+| POST — missing fields show inline error | PASS |
+| Active schedules table shows title, category, frequency badge, amount, next due | PASS |
+| On dashboard load — overdue entries auto-generated, next_due advanced | PASS |
+| Multi-period backfill — months of missed entries all created in one load | PASS |
+| Stop button removes schedule, "Recurring expense stopped." toast shown | PASS |
+| Month-end clamping — e.g. Jan 31 monthly → Feb 28, not Feb 31 | PASS |
+| Account deletion wipes recurring schedules along with expenses | PASS |
 
 ### `/dashboard` search bar (tested 2026-05-20)
 | Scenario | Result |

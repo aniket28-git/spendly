@@ -145,10 +145,17 @@
                     All expenses
                     {% if filtered %}<span class="filter-badge">Filtered</span>{% endif %}
                 </h2>
-                <div class="search-wrap">
-                    <span class="search-icon">⌕</span>
-                    <input type="search" id="expense-search" class="search-input"
-                           placeholder="Search expenses…" autocomplete="off">
+                <div class="expenses-card-actions">
+                    <div class="search-wrap">
+                        <span class="search-icon">⌕</span>
+                        <input type="search" id="expense-search" class="search-input"
+                               placeholder="Search expenses…" autocomplete="off">
+                    </div>
+                    <a href="{{ url_for('export_expenses',
+                                start_date=start_date if start_date else None,
+                                end_date=end_date if end_date else None,
+                                category=category if category else None) }}"
+                       class="btn-ghost export-btn">&#8595; Export CSV</a>
                 </div>
             </div>
 

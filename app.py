@@ -1,9 +1,11 @@
+import csv
 import hashlib
+import io
 import os
 import secrets
 from datetime import date, datetime, timedelta
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, Response
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db
@@ -288,6 +290,54 @@ def dashboard():
         chart_values=chart_values,
         donut_labels=donut_labels,
         donut_values=donut_values,
+    )
+
+
+@app.route("/expenses/export")
+def export_expenses():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    start_date = request.args.get("start_date", "").strip()
+    end_date   = request.args.get("end_date", "").strip()
+    category   = request.args.get("category", "").strip()
+
+    conditions = ["user_id = ?"]
+    params     = [session["user_id"]]
+
+    try:
+        if start_date and end_date:
+            date.fromisoformat(start_date)
+            date.fromisoformat(end_date)
+            if start_date <= end_date:
+                conditions.append("date BETWEEN ? AND ?")
+                params.extend([start_date, end_date])
+    except ValueError:
+        pass
+
+    if category:
+        conditions.append("category = ?")
+        params.append(category)
+
+    db = get_db()
+    expenses = db.execute(
+        f"SELECT date, title, category, amount FROM expenses"
+        f" WHERE {' AND '.join(conditions)} ORDER BY date DESC, id DESC",
+        params
+    ).fetchall()
+    db.close()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Date", "Title", "Category", "Amount"])
+    for e in expenses:
+        writer.writerow([e["date"], e["title"], e["category"], f"{e['amount']:.2f}"])
+
+    filename = f"spendly-{date.today().isoformat()}.csv"
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 

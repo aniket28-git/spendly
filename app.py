@@ -12,6 +12,7 @@ app = Flask(__name__)
 app.secret_key = "dev-secret-change-in-production"
 
 app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
     MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
     MAIL_USE_TLS=True,
@@ -76,6 +77,7 @@ def login():
         if user is None or not check_password_hash(user["password_hash"], password):
             return render_template("login.html", error="Invalid email or password.")
 
+        session.permanent = bool(request.form.get("remember"))
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
         return redirect(url_for("dashboard"))

@@ -80,7 +80,7 @@ password_reset_tokens (
 |--------|-------|-------------|
 | GET | `/` | Landing page |
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
-| GET/POST | `/login` | Sign in; redirects to `/dashboard` on success |
+| GET/POST | `/login` | Sign in; redirects to `/dashboard` on success. "Remember me for 30 days" checkbox sets `session.permanent = True`, attaching a 30-day `Max-Age` cookie; unchecked gives a session cookie that expires on browser close |
 | GET | `/logout` | Clears session, redirects to `/` |
 | GET | `/dashboard` | Shows stat cards, monthly spending bar chart, filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Chart always shows last 6 months unfiltered |
 | GET/POST | `/expenses/add` | Add new expense form |
@@ -106,7 +106,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -181,3 +181,10 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | POST — valid reset updates password, token deleted, success shown | PASS |
 | GET `/reset-password/<expired-or-bad-token>` — invalid state + re-request link | PASS |
 | Token cannot be reused after successful reset | PASS |
+
+### `/login` remember me (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| Checkbox unchecked — session cookie with no Max-Age (expires on browser close) | PASS |
+| Checkbox checked — cookie has 30-day Max-Age, persists across browser restart | PASS |
+| "Remember me for 30 days" checkbox rendered on login page | PASS |

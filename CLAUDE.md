@@ -58,7 +58,7 @@ expenses (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards + expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Stat cards adapt to show Filtered total / Period / Category context when any filter is active |
+| GET | `/dashboard` | Shows stat cards + expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
@@ -97,6 +97,18 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Valid range with no matching expenses — "No expenses in this range" empty state | PASS |
 | Start date after end date — error message | PASS |
 | Only one date provided — error message | PASS |
+
+### `/dashboard` sort feature (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| Sort by amount asc — correct ascending order | PASS |
+| Sort by title asc — correct alphabetical order | PASS |
+| Sort by date desc (default) — correct descending order | PASS |
+| Column headers rendered as sort links | PASS |
+| Active column has `col-sorted` class (accent highlight) | PASS |
+| ↑/↓ arrow shown on active sort column | PASS |
+| Sort preserved when combined with category filter | PASS |
+| Invalid `sort` param safely falls back to `date` | PASS |
 
 ### `/dashboard` category filter (tested 2026-05-19)
 | Scenario | Result |

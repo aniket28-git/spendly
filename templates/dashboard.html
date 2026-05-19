@@ -86,7 +86,7 @@
                         <label for="category">Category</label>
                         <select id="category" name="category" class="form-input filter-input filter-select">
                             <option value="">All categories</option>
-                            {% set categories = ["Food & Dining", "Transport", "Shopping", "Entertainment", "Health", "Bills & Utilities", "Other"] %}
+                            {% set categories = ["Food & Dining", "Grocery", "Transport", "Shopping", "Entertainment", "Self Learning", "Health", "Bills & Utilities", "Other"] %}
                             {% for cat in categories %}
                             <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
                             {% endfor %}
@@ -283,9 +283,11 @@
     const donutValues = {{ donut_values | tojson }};
     const CAT_COLORS = {
         'Food & Dining':   '#f59e0b',
+        'Grocery':         '#84cc16',
         'Transport':       '#3b82f6',
         'Shopping':        '#ec4899',
         'Entertainment':   '#8b5cf6',
+        'Self Learning':   '#06b6d4',
         'Health':          '#10b981',
         'Bills & Utilities': '#ef4444',
         'Other':           '#9ca3af',

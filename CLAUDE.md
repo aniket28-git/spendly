@@ -82,7 +82,7 @@ password_reset_tokens (
 | GET/POST | `/register` | Create account; on success renders success state (no redirect) |
 | GET/POST | `/login` | Sign in; redirects to `/dashboard` on success. "Remember me for 30 days" checkbox sets `session.permanent = True`, attaching a 30-day `Max-Age` cookie; unchecked gives a session cookie that expires on browser close |
 | GET | `/logout` | Clears session, redirects to `/` |
-| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Stat cards adapt to show Filtered total / Period / Category context when any filter is active. Charts are always unfiltered. Expense table has a client-side search bar and an Export CSV button (both in the card header); the export link forwards active filter params to `/expenses/export` |
+| GET | `/dashboard` | Shows stat cards, two charts (bar + doughnut), filter bar, and expense table; login-gated. Accepts optional `start_date`, `end_date` (YYYY-MM-DD), and `category` query params to filter expenses; filters can be combined. Accepts `sort` (`date`, `title`, `category`, `amount`) and `order` (`asc`, `desc`) for column sorting. Accepts `page` for pagination (10 rows per page, `PER_PAGE = 10`). Stat card totals are computed via SQL aggregates over all matching rows regardless of page. Charts are always unfiltered. Expense table has a client-side search bar and an Export CSV button (both in the card header); the export link forwards active filter params to `/expenses/export` |
 | GET | `/expenses/export` | Download all expenses as a CSV file (`spendly-YYYY-MM-DD.csv`). Accepts the same `start_date`, `end_date`, and `category` query params as the dashboard — export matches the active filter. Invalid dates are silently ignored. Login-gated |
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
@@ -107,7 +107,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -210,6 +210,20 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Checkbox unchecked — session cookie with no Max-Age (expires on browser close) | PASS |
 | Checkbox checked — cookie has 30-day Max-Age, persists across browser restart | PASS |
 | "Remember me for 30 days" checkbox rendered on login page | PASS |
+
+### `/dashboard` pagination (tested 2026-05-20)
+| Scenario | Result |
+|---|---|
+| 10 rows shown per page | PASS |
+| Pagination bar hidden when total rows ≤ 10 | PASS |
+| "X–Y of Z" info label correct on each page | PASS |
+| Prev disabled on page 1, Next disabled on last page | PASS |
+| Page numbers with ellipsis rendered for large sets | PASS |
+| Clicking page number navigates to correct page | PASS |
+| Filter/sort params preserved in all pagination links | PASS |
+| Sorting resets to page 1 | PASS |
+| Stat card totals reflect all matching rows, not just current page | PASS |
+| Out-of-range `page` param clamped to valid range | PASS |
 
 ### `/expenses/export` CSV export (tested 2026-05-20)
 | Scenario | Result |

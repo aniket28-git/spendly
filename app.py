@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-change-in-production"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
 
 app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),

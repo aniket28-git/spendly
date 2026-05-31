@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, Response, flash
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import get_db, init_db
+from database.db import get_db, init_db, seed_db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
@@ -27,6 +27,7 @@ mail = Mail(app)
 
 with app.app_context():
     init_db()
+    seed_db()
 
 
 # ------------------------------------------------------------------ #

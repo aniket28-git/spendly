@@ -6,103 +6,101 @@
 <section class="profile-section">
     <div class="profile-inner">
 
-        <div class="profile-header">
-            <h1 class="profile-title">Your profile</h1>
-            <p class="profile-subtitle">Manage your account details</p>
+        <!-- Avatar hero -->
+        <div class="profile-hero">
+            <div class="profile-avatar">
+                <span class="profile-avatar-initials">{{ user.name | first | upper }}</span>
+            </div>
+            <p class="profile-display-name">{{ user.name }}</p>
+            <p class="profile-display-email">{{ user.email }}</p>
+            <div class="profile-stats-row">
+                <span class="profile-stat-chip">Member since {{ user.created_at[:10] }}</span>
+                <span class="profile-stat-chip">{{ expense_count }} expense{{ 's' if expense_count != 1 else '' }} tracked</span>
+            </div>
         </div>
 
-        <div class="profile-grid">
+        <!-- Account info -->
+        <div class="profile-card">
+            <h2 class="profile-card-label">Account info</h2>
 
-            <!-- Account info -->
-            <div class="auth-card">
-                <h2 class="profile-card-title">Account info</h2>
+            {% if info_error %}
+            <div class="auth-error">{{ info_error }}</div>
+            {% endif %}
 
-                {% if info_error %}
-                <div class="auth-error">{{ info_error }}</div>
-                {% endif %}
+            <form method="POST" action="/profile">
+                <input type="hidden" name="action" value="update_info">
+                <div class="form-group">
+                    <label for="name">Full name</label>
+                    <input type="text" id="name" name="name" class="form-input"
+                           value="{{ user.name }}" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" class="form-input"
+                           value="{{ user.email }}" required>
+                </div>
+                <button type="submit" class="btn-submit">Save changes</button>
+            </form>
+        </div>
 
-                <form method="POST" action="/profile">
-                    <input type="hidden" name="action" value="update_info">
-                    <div class="form-group">
-                        <label for="name">Full name</label>
-                        <input type="text" id="name" name="name" class="form-input"
-                               value="{{ user.name }}" required autofocus>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email address</label>
-                        <input type="email" id="email" name="email" class="form-input"
-                               value="{{ user.email }}" required>
-                    </div>
-                    <button type="submit" class="btn-submit">Save changes</button>
-                </form>
-            </div>
+        <!-- Change password -->
+        <div class="profile-card">
+            <h2 class="profile-card-label">Change password</h2>
 
-            <!-- Change password -->
-            <div class="auth-card">
-                <h2 class="profile-card-title">Change password</h2>
+            {% if pw_error %}
+            <div class="auth-error">{{ pw_error }}</div>
+            {% endif %}
 
-                {% if pw_error %}
-                <div class="auth-error">{{ pw_error }}</div>
-                {% endif %}
-
-                <form method="POST" action="/profile">
-                    <input type="hidden" name="action" value="change_password">
-                    <div class="form-group">
-                        <label for="current_password">Current password</label>
-                        <input type="password" id="current_password" name="current_password"
-                               class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="new_password">New password</label>
-                        <input type="password" id="new_password" name="new_password"
-                               class="form-input" placeholder="Min. 8 characters" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm new password</label>
-                        <input type="password" id="confirm_password" name="confirm_password"
-                               class="form-input" required>
-                    </div>
-                    <button type="submit" class="btn-submit">Update password</button>
-                </form>
-            </div>
-
+            <form method="POST" action="/profile">
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label for="current_password">Current password</label>
+                    <input type="password" id="current_password" name="current_password"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="new_password">New password</label>
+                    <input type="password" id="new_password" name="new_password"
+                           class="form-input" placeholder="Min. 8 characters" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm new password</label>
+                    <input type="password" id="confirm_password" name="confirm_password"
+                           class="form-input" required>
+                </div>
+                <button type="submit" class="btn-submit">Update password</button>
+            </form>
         </div>
 
         <!-- Danger zone -->
         <div class="danger-zone">
-            <h2 class="danger-zone-title">Danger zone</h2>
-            <div class="auth-card danger-zone-card">
-                <p class="danger-zone-desc">
-                    Permanently deletes your account and every expense you've tracked.
-                    This cannot be undone.
-                </p>
+            <details {% if delete_error %}open{% endif %}>
+                <summary class="danger-zone-summary">Delete account</summary>
+                <div class="danger-zone-card">
+                    <p class="danger-zone-desc">
+                        Permanently deletes your account and every expense you've tracked.
+                        This cannot be undone.
+                    </p>
 
-                {% if delete_error %}
-                <div class="auth-error">{{ delete_error }}</div>
-                {% endif %}
+                    {% if delete_error %}
+                    <div class="auth-error">{{ delete_error }}</div>
+                    {% endif %}
 
-                <form method="POST" action="{{ url_for('profile') }}">
-                    <input type="hidden" name="action" value="delete_account">
-                    <div class="form-group">
-                        <label for="confirm_delete_password">Confirm your password</label>
-                        <input type="password" id="confirm_delete_password"
-                               name="confirm_delete_password"
-                               class="form-input" placeholder="Enter your password to confirm"
-                               required>
-                    </div>
-                    <button type="submit" class="btn-submit btn-danger-submit">
-                        Delete my account
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div class="profile-meta">
-            <span>Member since {{ user.created_at[:10] }}</span>
-            <span>&middot;</span>
-            <span>{{ expense_count }} expense{{ 's' if expense_count != 1 else '' }} tracked</span>
-            <span>&middot;</span>
-            <a href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+                    <form method="POST" action="{{ url_for('profile') }}">
+                        <input type="hidden" name="action" value="delete_account">
+                        <div class="form-group">
+                            <label for="confirm_delete_password">Confirm your password</label>
+                            <input type="password" id="confirm_delete_password"
+                                   name="confirm_delete_password"
+                                   class="form-input" placeholder="Enter your password to confirm"
+                                   required>
+                        </div>
+                        <button type="submit" class="btn-submit btn-danger-submit">
+                            Delete my account
+                        </button>
+                    </form>
+                </div>
+            </details>
         </div>
 
     </div>

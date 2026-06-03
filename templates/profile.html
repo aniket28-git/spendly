@@ -19,6 +19,52 @@
             </div>
         </div>
 
+        <!-- Spending summary -->
+        <div class="profile-card profile-summary-card">
+            <div class="profile-summary-header">
+                <h2 class="profile-card-label">Spending summary</h2>
+                {% if date_filtered %}
+                <span class="filter-badge">Filtered: {{ start_date }} → {{ end_date }}</span>
+                {% endif %}
+            </div>
+
+            <form method="GET" action="{{ url_for('profile') }}" class="profile-summary-filter">
+                <div class="filter-group">
+                    <label for="sum_start">From</label>
+                    <input type="date" id="sum_start" name="start_date"
+                           class="form-input filter-input" value="{{ start_date or '' }}">
+                </div>
+                <div class="filter-group">
+                    <label for="sum_end">To</label>
+                    <input type="date" id="sum_end" name="end_date"
+                           class="form-input filter-input" value="{{ end_date or '' }}">
+                </div>
+                <button type="submit" class="btn-submit filter-btn">Filter</button>
+                {% if date_filtered %}
+                <a href="{{ url_for('profile') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+
+            {% if filter_error %}
+            <div class="auth-error">{{ filter_error }}</div>
+            {% elif period_total is not none %}
+            <div class="profile-stat-chips">
+                <div class="profile-stat-chip-item">
+                    <span class="profile-stat-chip-value">₹{{ "%.2f"|format(period_total) }}</span>
+                    <span class="profile-stat-chip-label">Total spent</span>
+                </div>
+                <div class="profile-stat-chip-item">
+                    <span class="profile-stat-chip-value">{{ period_count }}</span>
+                    <span class="profile-stat-chip-label">Expenses</span>
+                </div>
+                <div class="profile-stat-chip-item">
+                    <span class="profile-stat-chip-value">{{ top_category or '—' }}</span>
+                    <span class="profile-stat-chip-label">Top category</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Account info -->
         <div class="profile-card">
             <h2 class="profile-card-label">Account info</h2>
@@ -27,7 +73,7 @@
             <div class="auth-error">{{ info_error }}</div>
             {% endif %}
 
-            <form method="POST" action="/profile">
+            <form method="POST" action="{{ url_for('profile') }}">
                 <input type="hidden" name="action" value="update_info">
                 <div class="form-group">
                     <label for="name">Full name</label>
@@ -51,7 +97,7 @@
             <div class="auth-error">{{ pw_error }}</div>
             {% endif %}
 
-            <form method="POST" action="/profile">
+            <form method="POST" action="{{ url_for('profile') }}">
                 <input type="hidden" name="action" value="change_password">
                 <div class="form-group">
                     <label for="current_password">Current password</label>

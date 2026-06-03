@@ -59,6 +59,38 @@ def init_db():
     conn.close()
 
 
+def get_spending_summary(db, user_id, start_date=None, end_date=None):
+    if start_date and end_date:
+        agg = db.execute(
+            "SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM expenses"
+            " WHERE user_id = ? AND date BETWEEN ? AND ?",
+            (user_id, start_date, end_date)
+        ).fetchone()
+        top_row = db.execute(
+            "SELECT category FROM expenses"
+            " WHERE user_id = ? AND date BETWEEN ? AND ?"
+            " GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
+            (user_id, start_date, end_date)
+        ).fetchone()
+    else:
+        agg = db.execute(
+            "SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM expenses"
+            " WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+        top_row = db.execute(
+            "SELECT category FROM expenses"
+            " WHERE user_id = ?"
+            " GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
+            (user_id,)
+        ).fetchone()
+    return {
+        "period_count": agg[0],
+        "period_total": round(float(agg[1]), 2),
+        "top_category": top_row["category"] if top_row else None,
+    }
+
+
 def seed_db():
     conn = get_db()
     existing = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]

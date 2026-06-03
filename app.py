@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, Response, flash
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import get_db, init_db, seed_db
+from database.db import get_db, init_db, seed_db, get_spending_summary
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
@@ -471,8 +471,12 @@ def profile():
 
             if not name or not email:
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       info_error="Name and email are required.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    info_error="Name and email are required.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             try:
                 db.execute("UPDATE users SET name=?, email=? WHERE id=?",
@@ -481,8 +485,12 @@ def profile():
                 session["user_name"] = name
             except Exception:
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       info_error="That email is already in use.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    info_error="That email is already in use.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             db.close()
             flash("Profile updated.", "success")
@@ -495,18 +503,30 @@ def profile():
 
             if not check_password_hash(user["password_hash"], current):
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       pw_error="Current password is incorrect.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    pw_error="Current password is incorrect.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             if len(new_pw) < 8:
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       pw_error="New password must be at least 8 characters.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    pw_error="New password must be at least 8 characters.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             if new_pw != confirm:
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       pw_error="Passwords don't match.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    pw_error="Passwords don't match.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             db.execute("UPDATE users SET password_hash=? WHERE id=?",
                        (generate_password_hash(new_pw), session["user_id"]))
@@ -520,8 +540,12 @@ def profile():
 
             if not check_password_hash(user["password_hash"], password):
                 db.close()
-                return render_template("profile.html", user=user, expense_count=expense_count,
-                                       delete_error="Incorrect password.")
+                return render_template(
+                    "profile.html", user=user, expense_count=expense_count,
+                    delete_error="Incorrect password.",
+                    start_date="", end_date="", date_filtered=False, filter_error=None,
+                    period_total=None, period_count=None, top_category=None,
+                )
 
             user_id = session["user_id"]
             db.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
@@ -533,8 +557,54 @@ def profile():
             session.clear()
             return redirect(url_for("landing"))
 
+    start_date = request.args.get("start_date", "").strip()
+    end_date   = request.args.get("end_date", "").strip()
+
+    date_filtered = False
+    filter_error  = None
+
+    if start_date or end_date:
+        try:
+            if start_date:
+                date.fromisoformat(start_date)
+            if end_date:
+                date.fromisoformat(end_date)
+            if not start_date or not end_date:
+                filter_error = "Please provide both a start and end date."
+            elif start_date > end_date:
+                filter_error = "Start date must be on or before the end date."
+            else:
+                date_filtered = True
+        except ValueError:
+            filter_error = "Invalid date format."
+
+    period_total = None
+    period_count = None
+    top_category = None
+
+    if filter_error is None:
+        summary = get_spending_summary(
+            db, session["user_id"],
+            start_date if date_filtered else None,
+            end_date if date_filtered else None,
+        )
+        period_count = summary["period_count"]
+        period_total = summary["period_total"]
+        top_category = summary["top_category"]
+
     db.close()
-    return render_template("profile.html", user=user, expense_count=expense_count)
+    return render_template(
+        "profile.html",
+        user=user,
+        expense_count=expense_count,
+        start_date=start_date,
+        end_date=end_date,
+        date_filtered=date_filtered,
+        filter_error=filter_error,
+        period_total=period_total,
+        period_count=period_count,
+        top_category=top_category,
+    )
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

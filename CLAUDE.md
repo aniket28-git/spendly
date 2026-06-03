@@ -37,7 +37,7 @@ $env:MAIL_PASSWORD = "your-app-password"   # Gmail: generate an App Password in 
 **Spendly** is a server-side rendered Flask application with SQLite. There is no frontend build step — no Node, no bundler, no TypeScript.
 
 - **`app.py`** — All Flask routes. Calls `init_db()` at startup inside `with app.app_context()`. Uses `session` for auth (`user_id`, `user_name`).
-- **`database/db.py`** — SQLite module. `get_db()` returns a connection with `row_factory = sqlite3.Row` and foreign keys enabled. `init_db()` creates all tables with `CREATE TABLE IF NOT EXISTS`.
+- **`database/db.py`** — SQLite module. `get_db()` returns a connection with `row_factory = sqlite3.Row` and foreign keys enabled. `init_db()` creates all tables with `CREATE TABLE IF NOT EXISTS`. `get_spending_summary(db, user_id, start_date, end_date)` returns `period_total`, `period_count`, and `top_category` for a given user and optional date range.
 - **`templates/`** — Jinja2 templates. `base.html` defines the shared navbar/footer; all others extend it. The navbar conditionally shows Dashboard · Recurring · user name (→ `/profile`) · Sign out (when `session.user_id` is set) or Sign in / Get started.
 - **`static/css/style.css`** — Global styles: design tokens, navbar, footer, auth forms, dashboard, expense pages.
 - **`static/css/landing.css`** — Landing-page-only styles (hero dark section, floating cards, video modal).
@@ -98,7 +98,7 @@ recurring_expenses (
 | GET/POST | `/expenses/add` | Add new expense form |
 | GET/POST | `/expenses/<id>/edit` | Edit existing expense (owner-checked) |
 | GET/POST | `/expenses/<id>/delete` | Confirmation page + delete (owner-checked) |
-| GET/POST | `/profile` | Edit name/email, change password, and delete account; login-gated. Delete action (`action=delete_account`) requires password confirmation, wipes tokens → recurring → expenses → user row, clears session, and redirects to `/` |
+| GET/POST | `/profile` | Edit name/email, change password, and delete account; login-gated. Delete action (`action=delete_account`) requires password confirmation, wipes tokens → recurring → expenses → user row, clears session, and redirects to `/`. GET accepts optional `start_date` and `end_date` (YYYY-MM-DD) query params to filter the spending summary card — shows `period_total`, `period_count`, and `top_category` for the selected range, or all-time totals when no filter is active. Invalid/partial dates set `filter_error`; stats are computed via `get_spending_summary()` in `database/db.py` |
 | GET/POST | `/recurring` | List and add recurring expense schedules; login-gated. POST creates a new schedule (title, amount, category, frequency, start date). Redirects with toast on success |
 | POST | `/recurring/<id>/delete` | Stop (delete) a recurring schedule (owner-checked). Redirects with toast |
 | GET/POST | `/forgot-password` | Request a password reset; shows same "check your email" message regardless of whether address exists |
@@ -120,7 +120,7 @@ CSS custom properties in `style.css`:
 - `--max-width: 1200px`, `--auth-width: 440px`
 - Fonts: `--font-display` (DM Serif Display), `--font-body` (DM Sans)
 
-Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Toast notifications use `.toast-container`, `.toast`, `.toast-success`, `.toast-error`, `.toast-msg`, `.toast-close`. The recurring page uses `.recurring-section`, `.recurring-inner`, `.recurring-header`, `.recurring-title`, `.recurring-subtitle`, `.recur-freq` (frequency badge), `.btn-unstyled` (unstyled form button). Category badges use `.cat-food-dining`, `.cat-grocery`, `.cat-transport`, `.cat-shopping`, `.cat-entertainment`, `.cat-self-learning`, `.cat-health`, `.cat-bills-utilities`, `.cat-other` — the class is derived from the category name via `lower | replace(' ', '-') | replace('&', '') | replace('--', '-')`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
+Auth/form pages reuse `.auth-section`, `.auth-card`, `.form-group`, `.form-input`, `.btn-submit`, `.form-check` (checkbox + label row). Profile danger zone uses `.danger-zone`, `.danger-zone-title`, `.danger-zone-card`, `.danger-zone-desc`. The profile spending summary card uses `.profile-summary-card` (gold left-border variant of `.profile-card`), `.profile-summary-header` (flex row for heading + badge), `.filter-badge` (pill showing active date range), `.profile-summary-filter` (flex filter form row), `.btn-clear` (outlined clear link), `.profile-stat-chips` (flex row of stat tiles), `.profile-stat-chip-item` (individual tile), `.profile-stat-chip-value` (display-font metric), `.profile-stat-chip-label` (uppercase label). The dashboard uses `.dashboard-section`, `.stat-card`, `.expenses-card`, `.expenses-table`; charts sit in a `.charts-row` grid (`.chart-wrap` for the bar chart, `.donut-wrap` for the doughnut); the expenses card header uses `.search-wrap`, `.search-icon`, `.search-input` for the search bar; pagination uses `.pagination-bar`, `.pagination`, `.page-btn`, `.page-btn-active`, `.page-btn-disabled`, `.page-ellipsis`. Toast notifications use `.toast-container`, `.toast`, `.toast-success`, `.toast-error`, `.toast-msg`, `.toast-close`. The recurring page uses `.recurring-section`, `.recurring-inner`, `.recurring-header`, `.recurring-title`, `.recurring-subtitle`, `.recur-freq` (frequency badge), `.btn-unstyled` (unstyled form button). Category badges use `.cat-food-dining`, `.cat-grocery`, `.cat-transport`, `.cat-shopping`, `.cat-entertainment`, `.cat-self-learning`, `.cat-health`, `.cat-bills-utilities`, `.cat-other` — the class is derived from the category name via `lower | replace(' ', '-') | replace('&', '') | replace('--', '-')`. Landing page has its own button variants (`.btn-coral`, `.btn-white-ghost`, `.btn-watch`) in `landing.css`.
 
 ## Expense Categories
 
@@ -274,6 +274,22 @@ Fixed list used in add/edit forms and styled as coloured badges on the dashboard
 | Stop button removes schedule, "Recurring expense stopped." toast shown | PASS |
 | Month-end clamping — e.g. Jan 31 monthly → Feb 28, not Feb 31 | PASS |
 | Account deletion wipes recurring schedules along with expenses | PASS |
+
+### `/profile` date filter — spending summary (tested 2026-06-04)
+| Scenario | Result |
+|---|---|
+| GET — spending summary card renders with heading and filter form | PASS |
+| No filter active — all-time total, count, and top category shown | PASS |
+| Valid date range — stat chips update to filtered period totals | PASS |
+| "Filtered: start → end" badge visible when date range is active | PASS |
+| Date inputs pre-populated with submitted values after filter | PASS |
+| Only start date provided — `filter_error` shown, chips hidden | PASS |
+| Only end date provided — `filter_error` shown, chips hidden | PASS |
+| Start date after end date — `filter_error` shown, chips hidden | PASS |
+| Date range with no matching expenses — ₹0.00, 0, "—" top category | PASS |
+| Clear link returns to all-time stats | PASS |
+| Existing profile cards (account info, change password, danger zone) unaffected | PASS |
+| Unauthenticated GET with date params redirects to `/login` | PASS |
 
 ### `/dashboard` search bar (tested 2026-05-20)
 | Scenario | Result |
